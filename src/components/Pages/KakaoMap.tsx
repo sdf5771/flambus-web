@@ -1,6 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import { Map, useKakaoLoader, MapMarker } from 'react-kakao-maps-sdk';
 import {ReactComponent as MarkerEmpty} from 'assets/images/markers/marker_0.svg';
+import imageSrc from 'assets/images/markers/marker_0.svg';
 
 const API_KEY = process.env.REACT_APP_KAKAO_MAP_API_KEY
 
@@ -28,8 +29,8 @@ function KakaoMap(){
     const [deviceWidth, setDeviceWidth] = useState<number | null>(window.innerWidth);
     const [deviceHeight, setDeviceHeight] = useState<number | null>(window.innerHeight);
     const [loading, error] = useKakaoLoader({appkey: API_KEY ? API_KEY : ''});
-    const [userLocData, setUserLocData] = useState<Tlocation | null>(null);
     const [markerData, setMarkerData] = useState<TMapData[] | null>(null);
+    const [createMap, onCreateMap] = useState(false); 
     
     useEffect(() => {
         setDeviceWidth(window.innerWidth);
@@ -42,9 +43,6 @@ function KakaoMap(){
         switch (type){
             case "marker Data":
                 setMarkerData(data); 
-                break
-            case "map location":
-                setUserLocData(data); 
                 break
         }
     };
@@ -59,49 +57,58 @@ function KakaoMap(){
             {!loading && window.ReactNativeWebView.locationData ? 
                 <Map 
                     center={{ 
-                        lat: window.ReactNativeWebView ? window.ReactNativeWebView.locationData.lat : 37.498004414546934, 
-                        lng: window.ReactNativeWebView ? window.ReactNativeWebView.locationData.lng : 127.02770621963765 
-                    }}   // 지도의 중심 좌표
+                        lat: window.ReactNativeWebView ? window.ReactNativeWebView.locationData.lat : 37.559718, 
+                        lng: window.ReactNativeWebView ? window.ReactNativeWebView.locationData.lng : 126.918775 
+                    }}   // 지도의 중심 좌표 
                     style={{ width: `${deviceWidth ? deviceWidth : 0}px`, height: `${deviceHeight ? deviceHeight : 0}px` }} // 지도 크기
                     level={3}                                   // 지도 확대 레벨
                     onCreate={(maps) => {
                         if(window.ReactNativeWebView.locationData){
-
                             window.ReactNativeWebView.postMessage(
                                 JSON.stringify({
                                     type: 'locationData received',
                                     data: {
                                         lat: window.ReactNativeWebView.locationData.lat,
-                                        lng: window.ReactNativeWebView.locationData.lng
+                                        lng: window.ReactNativeWebView.locationData.lng,
                                     },
                                 })
                             );
                         }
+                        onCreateMap(true);
                         maps.relayout()
                     }}
                 >
                     {
-                        markerData ? markerData.map((data: TMapData, index) => {
+                        markerData && createMap ? markerData.map((data: TMapData, index) => {
                             return (
                                 <MapMarker
                                     key={`${data.storeIdx}-${data.storeName}`}
-                                    // position={data.location}
-                                    position={{lng: 127.02770621963765, lat: 37.498004414546934}}
+                                    position={{lng: data.location.lng, lat: data.location.lat}}
                                     image={{
-                                        src: "/src/assets/images/markers/marker_0_1.png",
-                                        size: {width: 24, height: 24},
+                                        src: imageSrc,
+                                        size: {width: 80, height: 80},
                                         options: {
-                                          spriteSize: { width: 36, height: 98 },
-                                          spriteOrigin: { x: 10, y: 0 },
+                                          spriteSize: { width: 80, height: 80 },
+                                          spriteOrigin: { x: 0, y: 0 },
                                         },
                                       }}
                                     title={data.storeName}
+                                    onClick={() => {
+                                        window.ReactNativeWebView.postMessage(
+                                            JSON.stringify({
+                                                type: 'mapmarker data clicked',
+                                                data: data,
+                                            })
+                                        );
+                                    }}
                                 />
                             )
                         }) : null
                     }
                 </Map>
-            : <h1>loading...</h1>}
+            : 
+            <h1>loading...</h1>
+            }
         </div>
     )
 }
